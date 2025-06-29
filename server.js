@@ -17,6 +17,132 @@ app.use(express.json());
 const activeTests = new Map();
 const testHistoryFile = path.join(__dirname, 'test-history.json');
 
+// User profile templates for realistic simulation
+const USER_PROFILES = {
+    desktop: {
+        userAgents: [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15'
+        ],
+        acceptLanguages: ['en-US,en;q=0.9', 'en-GB,en;q=0.8', 'fr-FR,fr;q=0.9,en;q=0.8', 'de-DE,de;q=0.9,en;q=0.8'],
+        acceptEncodings: ['gzip, deflate, br', 'gzip, deflate'],
+        connections: ['keep-alive', 'close']
+    },
+    mobile: {
+        userAgents: [
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1',
+            'Mozilla/5.0 (Linux; Android 14; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+            'Mozilla/5.0 (iPad; CPU OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1'
+        ],
+        acceptLanguages: ['en-US,en;q=0.9', 'en-GB,en;q=0.8', 'es-ES,es;q=0.9,en;q=0.8'],
+        acceptEncodings: ['gzip, deflate, br'],
+        connections: ['keep-alive']
+    },
+    api: {
+        userAgents: [
+            'PostmanRuntime/7.36.0',
+            'insomnia/2023.5.8',
+            'curl/8.4.0',
+            'HTTPie/3.2.2',
+            'axios/1.6.0'
+        ],
+        acceptLanguages: ['*'],
+        acceptEncodings: ['gzip, deflate'],
+        connections: ['keep-alive', 'close']
+    }
+};
+
+// Sample data generators for dynamic content
+const DATA_GENERATORS = {
+    names: ['John', 'Jane', 'Mike', 'Sarah', 'David', 'Emma', 'Chris', 'Lisa', 'Tom', 'Anna'],
+    emails: ['user1@example.com', 'user2@test.com', 'user3@demo.org', 'test@sample.net'],
+    cities: ['New York', 'London', 'Tokyo', 'Paris', 'Berlin', 'Sydney', 'Toronto', 'Mumbai'],
+    products: ['laptop', 'phone', 'tablet', 'monitor', 'keyboard', 'mouse', 'headphones', 'camera'],
+    categories: ['electronics', 'books', 'clothing', 'home', 'sports', 'toys', 'music', 'movies'],
+    statuses: ['active', 'pending', 'completed', 'cancelled', 'processing', 'shipped', 'delivered']
+};
+
+// Generate a realistic user profile
+function generateUserProfile(profileType = 'mixed') {
+    let profile;
+    
+    if (profileType === 'mixed') {
+        const types = ['desktop', 'mobile', 'api'];
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        profile = USER_PROFILES[randomType];
+    } else {
+        profile = USER_PROFILES[profileType] || USER_PROFILES.desktop;
+    }
+    
+    return {
+        userAgent: profile.userAgents[Math.floor(Math.random() * profile.userAgents.length)],
+        acceptLanguage: profile.acceptLanguages[Math.floor(Math.random() * profile.acceptLanguages.length)],
+        acceptEncoding: profile.acceptEncodings[Math.floor(Math.random() * profile.acceptEncodings.length)],
+        connection: profile.connections[Math.floor(Math.random() * profile.connections.length)],
+        sessionId: uuidv4(),
+        userId: Math.floor(Math.random() * 100000),
+        deviceId: uuidv4().substring(0, 8)
+    };
+}
+
+// Generate dynamic request data
+function generateDynamicData(template, userProfile) {
+    if (!template) return null;
+    
+    let dynamicData = JSON.parse(JSON.stringify(template));
+    
+    // Replace placeholders with dynamic values
+    const replacements = {
+        '{{timestamp}}': Date.now(),
+        '{{random_id}}': Math.floor(Math.random() * 1000000),
+        '{{session_id}}': userProfile.sessionId,
+        '{{user_id}}': userProfile.userId,
+        '{{device_id}}': userProfile.deviceId,
+        '{{uuid}}': uuidv4(),
+        '{{random_name}}': DATA_GENERATORS.names[Math.floor(Math.random() * DATA_GENERATORS.names.length)],
+        '{{random_email}}': DATA_GENERATORS.emails[Math.floor(Math.random() * DATA_GENERATORS.emails.length)],
+        '{{random_city}}': DATA_GENERATORS.cities[Math.floor(Math.random() * DATA_GENERATORS.cities.length)],
+        '{{random_product}}': DATA_GENERATORS.products[Math.floor(Math.random() * DATA_GENERATORS.products.length)],
+        '{{random_category}}': DATA_GENERATORS.categories[Math.floor(Math.random() * DATA_GENERATORS.categories.length)],
+        '{{random_status}}': DATA_GENERATORS.statuses[Math.floor(Math.random() * DATA_GENERATORS.statuses.length)],
+        '{{random_number}}': Math.floor(Math.random() * 1000),
+        '{{random_float}}': (Math.random() * 100).toFixed(2)
+    };
+    
+    const jsonString = JSON.stringify(dynamicData);
+    const replacedString = Object.keys(replacements).reduce((str, placeholder) => {
+        return str.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacements[placeholder]);
+    }, jsonString);
+    
+    try {
+        return JSON.parse(replacedString);
+    } catch (e) {
+        return template;
+    }
+}
+
+// Add cache-busting parameters to URL
+function addCacheBusting(url, options = {}) {
+    const urlObj = new URL(url);
+    
+    if (options.addTimestamp !== false) {
+        urlObj.searchParams.set('_t', Date.now().toString());
+    }
+    
+    if (options.addRandomId !== false) {
+        urlObj.searchParams.set('_r', Math.random().toString(36).substring(2, 15));
+    }
+    
+    if (options.addSessionId) {
+        urlObj.searchParams.set('_sid', options.sessionId || uuidv4());
+    }
+    
+    return urlObj.toString();
+}
+
 // Load test history from file
 function loadTestHistory() {
     try {
@@ -41,6 +167,37 @@ function saveTestHistory(history) {
 
 // Initialize test history
 let testHistory = loadTestHistory();
+
+// Store recent test results for sample cases
+let recentTestResults = {
+    successes: [], // Array of successful request/response examples
+    failures: []   // Array of failed request/response examples
+};
+
+// Function to add a test result to recent examples
+function addTestResult(type, result) {
+    const maxResults = 10; // Keep only last 10 results of each type
+    
+    if (type === 'success') {
+        recentTestResults.successes.unshift(result);
+        if (recentTestResults.successes.length > maxResults) {
+            recentTestResults.successes = recentTestResults.successes.slice(0, maxResults);
+        }
+    } else if (type === 'failure') {
+        recentTestResults.failures.unshift(result);
+        if (recentTestResults.failures.length > maxResults) {
+            recentTestResults.failures = recentTestResults.failures.slice(0, maxResults);
+        }
+    }
+}
+
+// Function to get recent test examples for sample cases
+function getRecentTestExamples() {
+    return {
+        successes: recentTestResults.successes.slice(0, 3), // Return max 3 examples
+        failures: recentTestResults.failures.slice(0, 3)    // Return max 3 examples
+    };
+}
 
 // Serve the main page
 app.get('/', (req, res) => {
@@ -83,6 +240,11 @@ app.delete('/api/history', (req, res) => {
     testHistory = [];
     saveTestHistory(testHistory);
     res.json({ message: 'All test history cleared' });
+});
+
+// API endpoint to get recent test examples for sample cases
+app.get('/api/recent-examples', (req, res) => {
+    res.json(getRecentTestExamples());
 });
 
 // WebSocket connection handling
@@ -181,7 +343,12 @@ async function executeLoadTest(test, socket) {
 
 async function simulateUser(test, socket, userId) {
     const { config } = test;
-    const { url, method, headers, body, delayBetweenRequests } = config;
+    const { url, method, headers, body, delayBetweenRequests, userProfileType, enableCacheBusting, enableDynamicData } = config;
+
+    // Generate a unique user profile for this simulated user
+    const userProfile = generateUserProfile(userProfileType || 'mixed');
+    
+    console.log(`User ${userId}: Profile generated - ${userProfile.userAgent.substring(0, 50)}...`);
 
     while (test.isRunning) {
         // Use atomic operation to check and decrement available requests
@@ -207,28 +374,73 @@ async function simulateUser(test, socket, userId) {
         });
 
         try {
+            // Generate dynamic URL with cache busting if enabled
+            let dynamicUrl = url;
+            if (enableCacheBusting !== false) {
+                dynamicUrl = addCacheBusting(url, {
+                    addTimestamp: true,
+                    addRandomId: true,
+                    addSessionId: config.addSessionId,
+                    sessionId: userProfile.sessionId
+                });
+            }
+
+            // Create realistic headers with user profile
+            const dynamicHeaders = {
+                ...headers,
+                'User-Agent': userProfile.userAgent,
+                'Accept-Language': userProfile.acceptLanguage,
+                'Accept-Encoding': userProfile.acceptEncoding,
+                'Connection': userProfile.connection,
+                'X-Session-ID': userProfile.sessionId,
+                'X-User-ID': userProfile.userId.toString(),
+                'X-Device-ID': userProfile.deviceId,
+                'X-Request-ID': uuidv4(),
+                'X-Timestamp': Date.now().toString()
+            };
+
+            // Remove null/undefined headers
+            Object.keys(dynamicHeaders).forEach(key => {
+                if (dynamicHeaders[key] === null || dynamicHeaders[key] === undefined || dynamicHeaders[key] === '') {
+                    delete dynamicHeaders[key];
+                }
+            });
+
             const requestConfig = {
                 method: method.toLowerCase(),
-                url: url,
-                headers: headers || {},
+                url: dynamicUrl,
+                headers: dynamicHeaders,
                 timeout: 30000,
                 validateStatus: function (status) {
                     return status >= 100 && status < 600; // Accept all valid HTTP status codes
                 }
             };
 
+            // Handle dynamic body data
             if (body && (method.toUpperCase() === 'POST' || method.toUpperCase() === 'PUT' || method.toUpperCase() === 'PATCH')) {
-                if (typeof body === 'string') {
+                let dynamicBody = body;
+                
+                // Generate dynamic data if enabled
+                if (enableDynamicData !== false) {
                     try {
-                        // Try to parse as JSON first
-                        JSON.parse(body);
-                        requestConfig.data = body;
+                        const bodyTemplate = typeof body === 'string' ? JSON.parse(body) : body;
+                        dynamicBody = generateDynamicData(bodyTemplate, userProfile);
                     } catch (e) {
-                        // If not valid JSON, send as string
-                        requestConfig.data = body;
+                        // If body is not JSON, add some dynamic elements
+                        if (typeof body === 'string') {
+                            dynamicBody = body
+                                .replace(/{{timestamp}}/g, Date.now())
+                                .replace(/{{session_id}}/g, userProfile.sessionId)
+                                .replace(/{{user_id}}/g, userProfile.userId)
+                                .replace(/{{random_id}}/g, Math.floor(Math.random() * 1000000));
+                        }
                     }
+                }
+
+                if (typeof dynamicBody === 'string') {
+                    requestConfig.data = dynamicBody;
                 } else {
-                    requestConfig.data = JSON.stringify(body);
+                    requestConfig.data = JSON.stringify(dynamicBody);
                 }
                 
                 // Ensure Content-Type is set if not already provided
@@ -253,6 +465,34 @@ async function simulateUser(test, socket, userId) {
             // Update statistics for received response - only 200 is success
             const isSuccess = response.status === 200;
             updateStatsForResponse(test, responseTime, isSuccess, response.status);
+            
+            // Capture test result for sample cases
+            const testResult = {
+                timestamp: new Date().toISOString(),
+                config: {
+                    url: dynamicUrl,
+                    method: method.toUpperCase(),
+                    headers: dynamicHeaders,
+                    body: requestConfig.data ? requestConfig.data.substring(0, 1000) : null
+                },
+                response: {
+                    status: response.status,
+                    responseTime: responseTime,
+                    headers: response.headers,
+                    data: typeof response.data === 'string' ? response.data.substring(0, 2000) : JSON.stringify(response.data, null, 2).substring(0, 2000)
+                },
+                userProfile: {
+                    userAgent: userProfile.userAgent,
+                    sessionId: userProfile.sessionId,
+                    userId: userProfile.userId
+                }
+            };
+            
+            if (isSuccess) {
+                addTestResult('success', testResult);
+            } else {
+                addTestResult('failure', testResult);
+            }
             
             // Emit real-time update for response with response data
             socket.emit('test-update', {
@@ -282,10 +522,59 @@ async function simulateUser(test, socket, userId) {
                 if (error.message) {
                     test.stats.errors.push(error.message);
                 }
+                
+                // Capture failure test result for sample cases
+                const failureResult = {
+                    timestamp: new Date().toISOString(),
+                    config: {
+                        url: dynamicUrl,
+                        method: method.toUpperCase(),
+                        headers: dynamicHeaders,
+                        body: requestConfig.data ? requestConfig.data.substring(0, 1000) : null
+                    },
+                    response: {
+                        status: error.response.status,
+                        responseTime: responseTime,
+                        headers: error.response.headers,
+                        data: typeof error.response.data === 'string' ? error.response.data.substring(0, 2000) : JSON.stringify(error.response.data, null, 2).substring(0, 2000),
+                        error: error.message
+                    },
+                    userProfile: {
+                        userAgent: userProfile.userAgent,
+                        sessionId: userProfile.sessionId,
+                        userId: userProfile.userId
+                    }
+                };
+                addTestResult('failure', failureResult);
+                
             } else {
                 // Network error or timeout - definitely not success
                 updateStatsForResponse(test, responseTime, false, null);
                 test.stats.errors.push(error.message);
+                
+                // Capture timeout/network failure result for sample cases
+                const networkFailureResult = {
+                    timestamp: new Date().toISOString(),
+                    config: {
+                        url: dynamicUrl,
+                        method: method.toUpperCase(),
+                        headers: dynamicHeaders,
+                        body: requestConfig.data ? requestConfig.data.substring(0, 1000) : null
+                    },
+                    response: {
+                        status: null,
+                        responseTime: responseTime,
+                        headers: null,
+                        data: null,
+                        error: error.message
+                    },
+                    userProfile: {
+                        userAgent: userProfile.userAgent,
+                        sessionId: userProfile.sessionId,
+                        userId: userProfile.userId
+                    }
+                };
+                addTestResult('failure', networkFailureResult);
             }
             
             // Emit error update with response data

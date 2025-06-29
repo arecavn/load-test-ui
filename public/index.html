@@ -84,11 +84,85 @@
 
                 <div class="form-group">
                     <label for="body">Request Body (for POST/PUT/PATCH)</label>
-                    <textarea id="body" placeholder='{"key": "value"}' 
+                    <textarea id="body" placeholder='{"key": "value", "user_id": "{{user_id}}", "timestamp": "{{timestamp}}", "name": "{{random_name}}"}' 
                               aria-describedby="body-help" aria-invalid="false"></textarea>
-                    <small id="body-help" class="help-text">Enter request body in JSON format</small>
+                    <small id="body-help" class="help-text">Enter request body in JSON format. Use placeholders like {{user_id}}, {{timestamp}}, {{random_name}} for dynamic data</small>
                     <div class="error-message" id="body-error" role="alert" hidden></div>
                 </div>
+
+                <!-- Advanced Options -->
+                <details class="advanced-options">
+                    <summary>🔧 Advanced Options - Multiple Users & Cache Busting</summary>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userProfileType">User Profile Type</label>
+                            <select id="userProfileType" aria-describedby="profile-help">
+                                <option value="mixed">Mixed (Desktop/Mobile/API)</option>
+                                <option value="desktop">Desktop Browsers</option>
+                                <option value="mobile">Mobile Devices</option>
+                                <option value="api">API Clients</option>
+                            </select>
+                            <small id="profile-help" class="help-text">Different user agents and headers for realistic simulation</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="enableCacheBusting" checked>
+                                Enable Cache Busting
+                            </label>
+                            <small class="help-text">Adds random parameters to prevent caching (recommended)</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="enableDynamicData" checked>
+                                Enable Dynamic Data
+                            </label>
+                            <small class="help-text">Replaces placeholders in body/headers with random values</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="addSessionId">
+                                Add Session IDs
+                            </label>
+                            <small class="help-text">Includes unique session IDs in requests</small>
+                        </div>
+                    </div>
+
+                    <div class="dynamic-placeholders">
+                        <h4>🏷️ Available Dynamic Placeholders:</h4>
+                        <div class="placeholder-grid">
+                            <code>{{timestamp}}</code> <span>Current timestamp</span>
+                            <code>{{user_id}}</code> <span>Unique user ID</span>
+                            <code>{{session_id}}</code> <span>Session identifier</span>
+                            <code>{{device_id}}</code> <span>Device identifier</span>
+                            <code>{{uuid}}</code> <span>Random UUID</span>
+                            <code>{{random_id}}</code> <span>Random number</span>
+                            <code>{{random_name}}</code> <span>Random name</span>
+                            <code>{{random_email}}</code> <span>Random email</span>
+                            <code>{{random_city}}</code> <span>Random city</span>
+                            <code>{{random_product}}</code> <span>Random product</span>
+                            <code>{{random_category}}</code> <span>Random category</span>
+                            <code>{{random_status}}</code> <span>Random status</span>
+                        </div>
+                    </div>
+
+                    <div class="realistic-example">
+                        <h4>💡 Example Usage:</h4>
+                        <div class="example-section">
+                            <strong>Headers:</strong>
+                            <pre>{"Authorization": "Bearer token_{{user_id}}", "X-Session": "{{session_id}}"}</pre>
+                        </div>
+                        <div class="example-section">
+                            <strong>Body:</strong>
+                            <pre>{"user": "{{random_name}}", "email": "{{random_email}}", "timestamp": {{timestamp}}}</pre>
+                        </div>
+                    </div>
+                </details>
 
                 <div class="controls">
                     <button id="startTest" class="btn btn-primary" aria-label="Start Load Test">
@@ -246,6 +320,32 @@
                 </div>
             </section>
         </main>
+
+        <!-- Recent Test Results Section - At the bottom of the page -->
+        <section class="sample-cases-panel" role="region" aria-labelledby="samples-title">
+            <div class="section-header">
+                <h2 id="samples-title">📋 Recent Test Results</h2>
+                <button id="refreshResults" class="btn btn-info btn-small" aria-label="Refresh Recent Test Results">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Refresh Results</span>
+                </button>
+            </div>
+            <p style="color: #6c757d; margin-bottom: 2rem; text-align: center; font-style: italic;">
+                <span id="results-status">These are real results from your recent load test runs. The system keeps the 3 most recent examples of each type.</span>
+            </p>
+            
+            <!-- Success Cases -->
+            <div class="test-group">
+                <h3 class="group-title success">✅ Success Cases</h3>
+                <!-- Real success cases will be loaded here dynamically -->
+            </div>
+
+            <!-- Failure Cases -->
+            <div class="test-group">
+                <h3 class="group-title failure">❌ Failure Cases</h3>
+                <!-- Real failure cases will be loaded here dynamically -->
+            </div>
+        </section>
     </div>
 
     <script src="app.js"></script>

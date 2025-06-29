@@ -456,6 +456,11 @@ class LoadTestUI {
             this.setLoadingState(startBtn, false);
             this.setLoadingState(stopBtn, false);
             
+            // Load recent test examples after test completion with delay to ensure data is available
+            setTimeout(() => {
+                refreshRecentTestResults(true);
+            }, 1000);
+            
             // Announce to screen readers
             this.announceToScreenReader('Load test completed');
         });
@@ -531,6 +536,12 @@ class LoadTestUI {
             }
         }
 
+        // Get advanced options
+        const userProfileType = document.getElementById('userProfileType')?.value || 'mixed';
+        const enableCacheBusting = document.getElementById('enableCacheBusting')?.checked !== false;
+        const enableDynamicData = document.getElementById('enableDynamicData')?.checked !== false;
+        const addSessionId = document.getElementById('addSessionId')?.checked || false;
+
         return {
             url,
             method,
@@ -538,7 +549,11 @@ class LoadTestUI {
             totalRequests,
             delayBetweenRequests,
             headers,
-            body
+            body,
+            userProfileType,
+            enableCacheBusting,
+            enableDynamicData,
+            addSessionId
         };
     }
 
@@ -873,6 +888,20 @@ class LoadTestUI {
         } else {
             document.getElementById('body').value = '';
         }
+
+        // Load advanced options if available
+        if (document.getElementById('userProfileType')) {
+            document.getElementById('userProfileType').value = config.userProfileType || 'mixed';
+        }
+        if (document.getElementById('enableCacheBusting')) {
+            document.getElementById('enableCacheBusting').checked = config.enableCacheBusting !== false;
+        }
+        if (document.getElementById('enableDynamicData')) {
+            document.getElementById('enableDynamicData').checked = config.enableDynamicData !== false;
+        }
+        if (document.getElementById('addSessionId')) {
+            document.getElementById('addSessionId').checked = config.addSessionId || false;
+        }
     }
 
     async deleteHistoryItem(historyId) {
@@ -1068,9 +1097,300 @@ class LoadTestUI {
     }
 }
 
+// Toggle test case expand/collapse function
+function toggleTestCase(caseId) {
+    const content = document.getElementById(caseId);
+    const header = content.previousElementSibling;
+    const icon = header.querySelector('.expand-icon');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        content.classList.add('expanded');
+        icon.style.transform = 'rotate(180deg)';
+    }
+}
+
+// Toggle response body full view
+function toggleResponseBody(type, index) {
+    console.log('Toggling response body:', type, index); // Debug log
+    
+    const truncatedElement = document.getElementById(`response-body-${type}-${index}`);
+    const fullResponseElement = document.getElementById(`full-response-${type}-${index}`);
+    
+    if (!truncatedElement || !fullResponseElement) {
+        console.error('Could not find response body elements:', {
+            truncated: !!truncatedElement,
+            full: !!fullResponseElement,
+            type,
+            index
+        });
+        return;
+    }
+    
+    const showMoreBtn = truncatedElement.parentElement.querySelector('.show-more-btn');
+    
+    // Check if currently showing full response
+    const isShowingFull = fullResponseElement.style.display === 'block';
+    
+    if (isShowingFull) {
+        // Show truncated response
+        truncatedElement.style.display = 'block';
+        if (showMoreBtn) showMoreBtn.style.display = 'inline-block';
+        fullResponseElement.style.display = 'none';
+    } else {
+        // Show full response
+        truncatedElement.style.display = 'none';
+        if (showMoreBtn) showMoreBtn.style.display = 'none';
+        fullResponseElement.style.display = 'block';
+    }
+}
+
+// Function to refresh recent test results with visual feedback
+async function refreshRecentTestResults(isAutoRefresh = false) {
+    const refreshBtn = document.getElementById('refreshResults');
+    const statusText = document.getElementById('results-status');
+    
+    try {
+        // Add loading state
+        if (refreshBtn) {
+            refreshBtn.classList.add('loading');
+            refreshBtn.disabled = true;
+        }
+        
+        if (statusText) {
+            statusText.classList.add('loading');
+            statusText.textContent = isAutoRefresh ? 
+                'Auto-refreshing with latest test results...' : 
+                'Refreshing test results...';
+        }
+        
+        const response = await fetch('/api/recent-examples?t=' + Date.now()); // Cache busting
+        const examples = await response.json();
+        
+        updateSampleCases(examples);
+        
+        // Update status message
+        if (statusText) {
+            statusText.classList.remove('loading');
+            statusText.classList.add('updated');
+            const timestamp = new Date().toLocaleTimeString();
+            statusText.textContent = `✅ Updated with latest test results (${timestamp}). Showing 3 most recent examples of each type.`;
+            
+            // Reset status after 5 seconds
+            setTimeout(() => {
+                statusText.classList.remove('updated');
+                statusText.textContent = 'These are real results from your recent load test runs. The system keeps the 3 most recent examples of each type.';
+            }, 5000);
+        }
+        
+    } catch (error) {
+        console.log('Could not load recent test examples:', error);
+        
+        if (statusText) {
+            statusText.classList.remove('loading');
+            statusText.textContent = '❌ Failed to refresh test results. Please try again.';
+            
+            // Reset status after 3 seconds
+            setTimeout(() => {
+                statusText.textContent = 'These are real results from your recent load test runs. The system keeps the 3 most recent examples of each type.';
+            }, 3000);
+        }
+    } finally {
+        // Remove loading state
+        if (refreshBtn) {
+            refreshBtn.classList.remove('loading');
+            refreshBtn.disabled = false;
+        }
+    }
+}
+
+// Legacy function for backward compatibility
+async function loadRecentTestExamples() {
+    return refreshRecentTestResults(false);
+}
+
+// Function to update sample cases with real test results
+function updateSampleCases(examples) {
+    updateSuccessCases(examples.successes);
+    updateFailureCases(examples.failures);
+}
+
+// Function to update success cases with real data
+function updateSuccessCases(successes) {
+    const successGroup = document.querySelector('.test-group .group-title.success').parentElement;
+    const existingCases = successGroup.querySelectorAll('.test-case');
+    
+    // Remove existing cases
+    existingCases.forEach(testCase => testCase.remove());
+    
+    if (successes.length === 0) {
+        const noDataDiv = document.createElement('div');
+        noDataDiv.className = 'no-data-message';
+        noDataDiv.innerHTML = '<p>No recent successful tests available. Run some tests to see examples here.</p>';
+        successGroup.appendChild(noDataDiv);
+        return;
+    }
+    
+    successes.forEach((result, index) => {
+        const testCase = createTestCaseElement('success', result, index);
+        successGroup.appendChild(testCase);
+    });
+}
+
+// Function to update failure cases with real data
+function updateFailureCases(failures) {
+    const failureGroup = document.querySelector('.test-group .group-title.failure').parentElement;
+    const existingCases = failureGroup.querySelectorAll('.test-case');
+    
+    // Remove existing cases
+    existingCases.forEach(testCase => testCase.remove());
+    
+    if (failures.length === 0) {
+        const noDataDiv = document.createElement('div');
+        noDataDiv.className = 'no-data-message';
+        noDataDiv.innerHTML = '<p>No recent failed tests available. This is good news!</p>';
+        failureGroup.appendChild(noDataDiv);
+        return;
+    }
+    
+    failures.forEach((result, index) => {
+        const testCase = createTestCaseElement('failure', result, index);
+        failureGroup.appendChild(testCase);
+    });
+}
+
+// Helper function to escape HTML content for display
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Function to create a test case element from real data
+function createTestCaseElement(type, result, index) {
+    const testCase = document.createElement('div');
+    testCase.className = 'test-case';
+    
+    const caseId = `${type}-${index}`;
+    const timestamp = new Date(result.timestamp).toLocaleString();
+    const statusText = result.response.status ? `${result.response.status}` : 'TIMEOUT/ERROR';
+    const responseTime = result.response.responseTime ? `${result.response.responseTime}ms` : 'N/A';
+    
+    const title = type === 'success' ? 
+        `✅ Success ${index + 1}: ${result.config.method} ${extractDomain(result.config.url)}` :
+        `❌ ${statusText} ${index + 1}: ${result.config.method} ${extractDomain(result.config.url)}`;
+    
+    // Escape HTML content for safe display
+    const escapedResponseData = result.response.data ? escapeHtml(result.response.data) : '';
+    const truncatedResponseData = result.response.data ? escapeHtml(result.response.data.substring(0, 500)) : '';
+    
+    testCase.innerHTML = `
+        <div class="test-case-header" onclick="toggleTestCase('${caseId}')">
+            <span class="test-case-title">${title}</span>
+            <span class="expand-icon">▼</span>
+        </div>
+        <div class="test-case-content" id="${caseId}">
+            <div class="test-input">
+                <h4>📤 Request (${timestamp})</h4>
+                <div class="code-block">
+                    <div class="config-item">
+                        <strong>URL:</strong> ${escapeHtml(result.config.url)}
+                    </div>
+                    <div class="config-item">
+                        <strong>Method:</strong> ${result.config.method}
+                    </div>
+                    <div class="config-item">
+                        <strong>Headers:</strong>
+                        <pre>${escapeHtml(JSON.stringify(result.config.headers, null, 2))}</pre>
+                    </div>
+                    ${result.config.body ? `
+                    <div class="config-item">
+                        <strong>Body:</strong>
+                        <pre>${escapeHtml(result.config.body)}</pre>
+                    </div>
+                    ` : ''}
+                    <div class="config-item">
+                        <strong>User Profile:</strong> ${extractBrowserName(result.userProfile.userAgent)} | Session: ${result.userProfile.sessionId.substring(0, 8)}...
+                    </div>
+                </div>
+            </div>
+            <div class="test-output">
+                <h4>📥 Response</h4>
+                <div class="result-block ${type}">
+                    <div class="result-summary">
+                        <span class="status-badge ${type}">STATUS: ${statusText}</span>
+                        <span class="response-time">Response Time: ${responseTime}</span>
+                        ${type === 'success' ? '<span class="success-rate">Success</span>' : '<span class="success-rate">Failed</span>'}
+                    </div>
+                    <div class="result-details">
+                        ${result.response.error ? `
+                        <strong>Error:</strong>
+                        <pre class="error-text">${escapeHtml(result.response.error)}</pre>
+                        ` : ''}
+                        ${result.response.data ? `
+                        <strong>Response Body:</strong>
+                        <div class="response-body-container">
+                            <pre class="response-body ${result.response.data.length > 500 ? 'truncated' : ''}" id="response-body-${type}-${index}">${truncatedResponseData}${result.response.data.length > 500 ? '...' : ''}</pre>
+                            ${result.response.data.length > 500 ? `
+                            <button class="btn btn-info btn-small show-more-btn" onclick="toggleResponseBody('${type}', ${index})">Show Full Response</button>
+                            <div class="full-response" id="full-response-${type}-${index}" style="display: none;">
+                                <pre class="response-body-full">${escapedResponseData}</pre>
+                                <button class="btn btn-secondary btn-small" onclick="toggleResponseBody('${type}', ${index})">Show Less</button>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
+                        ${result.response.headers ? `
+                        <details class="headers-details">
+                            <summary><strong>Response Headers</strong> (click to expand)</summary>
+                            <pre class="response-headers">${escapeHtml(JSON.stringify(result.response.headers, null, 2))}</pre>
+                        </details>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return testCase;
+}
+
+// Helper function to extract domain from URL
+function extractDomain(url) {
+    try {
+        return new URL(url).hostname;
+    } catch (e) {
+        return url.split('/')[2] || url;
+    }
+}
+
+// Helper function to extract browser name from user agent
+function extractBrowserName(userAgent) {
+    if (userAgent.includes('Chrome')) return 'Chrome';
+    if (userAgent.includes('Firefox')) return 'Firefox';
+    if (userAgent.includes('Safari')) return 'Safari';
+    if (userAgent.includes('PostmanRuntime')) return 'Postman';
+    if (userAgent.includes('curl')) return 'curl';
+    if (userAgent.includes('axios')) return 'axios';
+    return 'Unknown';
+}
+
 // Initialize the application when the page loads
 let loadTestUI;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadTestUI = new LoadTestUI();
+    
+    // Add event listener for refresh button
+    const refreshBtn = document.getElementById('refreshResults');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            refreshRecentTestResults(false);
+        });
+    }
+    
+    // Load recent test examples on page load
+    loadRecentTestExamples();
 });

@@ -132,3 +132,9 @@ Thumbs.db
 
 # Application specific
 test-history.json
+
+# Scripts folder (test files, temporary scripts)
+scripts/
+
+# Reports folder (test reports and analysis)
+**/reports

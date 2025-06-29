@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Recent Examples</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        pre {
+            background: #fff;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .response-data {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 12px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Recent Examples API</h1>
+    
+    <div class="container">
+        <h2>Quick Tests</h2>
+        <button onclick="testAPI()">Test API Direct</button>
+        <button onclick="testLoadRecentExamples()">Test loadRecentTestExamples()</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div class="container">
+        <h2>API Response</h2>
+        <div id="apiResponse">Click "Test API Direct" to see raw API response</div>
+    </div>
+
+    <div class="container">
+        <h2>Frontend Function Test</h2>
+        <div id="frontendTest">Click "Test loadRecentTestExamples()" to test frontend function</div>
+    </div>
+
+    <div class="container">
+        <h2>Success Examples</h2>
+        <div id="successExamples">No success examples loaded</div>
+    </div>
+
+    <div class="container">
+        <h2>Failure Examples</h2>
+        <div id="failureExamples">No failure examples loaded</div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            document.getElementById('apiResponse').innerHTML = '⏳ Loading...';
+            
+            try {
+                const response = await fetch('/api/recent-examples');
+                const data = await response.json();
+                
+                document.getElementById('apiResponse').innerHTML = 
+                    `<pre class="success">${JSON.stringify(data, null, 2)}</pre>`;
+                    
+                // Also populate the example sections
+                displayExamples(data);
+                
+            } catch (error) {
+                document.getElementById('apiResponse').innerHTML = 
+                    `<pre class="error">Error: ${error.message}</pre>`;
+            }
+        }
+
+        async function testLoadRecentExamples() {
+            document.getElementById('frontendTest').innerHTML = '⏳ Testing frontend function...';
+            
+            try {
+                // Test if the function exists
+                if (typeof loadRecentTestExamples === 'function') {
+                    await loadRecentTestExamples();
+                    document.getElementById('frontendTest').innerHTML = 
+                        '<pre class="success">✅ loadRecentTestExamples() function executed successfully</pre>';
+                } else {
+                    document.getElementById('frontendTest').innerHTML = 
+                        '<pre class="error">❌ loadRecentTestExamples() function not found</pre>';
+                }
+            } catch (error) {
+                document.getElementById('frontendTest').innerHTML = 
+                    `<pre class="error">❌ Error executing function: ${error.message}</pre>`;
+            }
+        }
+
+        function displayExamples(data) {
+            // Display success examples
+            const successDiv = document.getElementById('successExamples');
+            if (data.successes && data.successes.length > 0) {
+                successDiv.innerHTML = data.successes.map((example, index) => 
+                    `<div class="example">
+                        <h4>Success Example ${index + 1}</h4>
+                        <p><strong>URL:</strong> ${example.config.url}</p>
+                        <p><strong>Status:</strong> ${example.response.status}</p>
+                        <p><strong>Response Time:</strong> ${example.response.responseTime}ms</p>
+                        <p><strong>User Agent:</strong> ${example.userProfile.userAgent}</p>
+                        <div class="response-data">
+                            <strong>Response Data (first 300 chars):</strong><br>
+                            ${example.response.data ? example.response.data.substring(0, 300) + '...' : 'No data'}
+                        </div>
+                    </div>`
+                ).join('');
+            } else {
+                successDiv.innerHTML = '<p>No success examples found</p>';
+            }
+
+            // Display failure examples
+            const failureDiv = document.getElementById('failureExamples');
+            if (data.failures && data.failures.length > 0) {
+                failureDiv.innerHTML = data.failures.map((example, index) => 
+                    `<div class="example">
+                        <h4>Failure Example ${index + 1}</h4>
+                        <p><strong>URL:</strong> ${example.config.url}</p>
+                        <p><strong>Status:</strong> ${example.response.status || 'No status'}</p>
+                        <p><strong>Error:</strong> ${example.response.error || 'No error message'}</p>
+                        <p><strong>User Agent:</strong> ${example.userProfile.userAgent}</p>
+                    </div>`
+                ).join('');
+            } else {
+                failureDiv.innerHTML = '<p>No failure examples found</p>';
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('apiResponse').innerHTML = 'Click "Test API Direct" to see raw API response';
+            document.getElementById('frontendTest').innerHTML = 'Click "Test loadRecentTestExamples()" to test frontend function';
+            document.getElementById('successExamples').innerHTML = 'No success examples loaded';
+            document.getElementById('failureExamples').innerHTML = 'No failure examples loaded';
+        }
+
+        // Try to load the main app.js to test functions
+        const script = document.createElement('script');
+        script.src = 'app.js';
+        script.onerror = () => {
+            document.getElementById('frontendTest').innerHTML = 
+                '<pre class="error">❌ Could not load app.js</pre>';
+        };
+        document.head.appendChild(script);
+        
+        // Auto-test on page load
+        window.onload = () => {
+            testAPI();
+        };
+    </script>
+</body>
+</html> 
