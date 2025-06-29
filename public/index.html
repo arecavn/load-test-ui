@@ -149,6 +149,27 @@
                             <code>{{random_category}}</code> <span>Random category</span>
                             <code>{{random_status}}</code> <span>Random status</span>
                         </div>
+                        
+                        <h4>🔍 Query Keyword Placeholders:</h4>
+                        <div class="placeholder-grid">
+                            <code>{{search_query}}</code> <span>Job search terms</span>
+                            <code>{{simple_query}}</code> <span>Single word queries</span>
+                            <code>{{short_query}}</code> <span>Truncated queries</span>
+                            <code>{{job_title}}</code> <span>Job position titles</span>
+                            <code>{{skill}}</code> <span>Technology skills</span>
+                            <code>{{industry}}</code> <span>Industry sectors</span>
+                            <code>{{location}}</code> <span>Geographic locations</span>
+                            <code>{{company}}</code> <span>Company names</span>
+                            <code>{{real_user_id}}</code> <span>Realistic user ID</span>
+                            <code>{{city_id}}</code> <span>City ID for filters</span>
+                        </div>
+                        
+                        <h4>🎯 Combined Query Patterns:</h4>
+                        <div class="placeholder-grid">
+                            <code>{{query_skill_location}}</code> <span>Skill + Location</span>
+                            <code>{{query_title_skill}}</code> <span>Title + Skill</span>
+                            <code>{{query_industry_role}}</code> <span>Industry + Role</span>
+                        </div>
                     </div>
 
                     <div class="realistic-example">
@@ -158,8 +179,20 @@
                             <pre>{"Authorization": "Bearer token_{{user_id}}", "X-Session": "{{session_id}}"}</pre>
                         </div>
                         <div class="example-section">
-                            <strong>Body:</strong>
+                            <strong>Body - User Registration:</strong>
                             <pre>{"user": "{{random_name}}", "email": "{{random_email}}", "timestamp": {{timestamp}}}</pre>
+                        </div>
+                        <div class="example-section">
+                            <strong>Body - Job Search API:</strong>
+                            <pre>{"query": "{{search_query}}", "location": "{{location}}", "skill": "{{skill}}", "userId": "{{user_id}}"}</pre>
+                        </div>
+                        <div class="example-section">
+                            <strong>Body - Advanced Search:</strong>
+                            <pre>{"search": "{{query_skill_location}}", "industry": "{{industry}}", "company": "{{company}}", "sessionId": "{{session_id}}"}</pre>
+                        </div>
+                        <div class="example-section">
+                            <strong>Body - VietnamWorks API (Complex):</strong>
+                            <pre>{"userId": "{{real_user_id}}", "query": "{{simple_query}}", "filter": [{"field": "workingLocations.cityId", "value": "{{city_id}}"}], "hitsPerPage": 50, "page": 0}</pre>
                         </div>
                     </div>
                 </details>

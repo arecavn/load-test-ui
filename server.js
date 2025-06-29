@@ -62,7 +62,50 @@ const DATA_GENERATORS = {
     cities: ['New York', 'London', 'Tokyo', 'Paris', 'Berlin', 'Sydney', 'Toronto', 'Mumbai'],
     products: ['laptop', 'phone', 'tablet', 'monitor', 'keyboard', 'mouse', 'headphones', 'camera'],
     categories: ['electronics', 'books', 'clothing', 'home', 'sports', 'toys', 'music', 'movies'],
-    statuses: ['active', 'pending', 'completed', 'cancelled', 'processing', 'shipped', 'delivered']
+    statuses: ['active', 'pending', 'completed', 'cancelled', 'processing', 'shipped', 'delivered'],
+    
+    // Query keywords for search simulations
+    searchQueries: [
+        'react developer', 'java engineer', 'python programmer', 'data scientist', 'frontend developer',
+        'backend engineer', 'full stack developer', 'devops engineer', 'mobile developer', 'ui ux designer',
+        'product manager', 'software architect', 'machine learning', 'cloud engineer', 'database administrator',
+        'qa engineer', 'security analyst', 'business analyst', 'project manager', 'technical lead',
+        
+        // More specific and shorter queries for better API compatibility
+        'developer', 'engineer', 'manager', 'analyst', 'designer', 'programmer', 'architect',
+        'javascript', 'java', 'python', 'react', 'nodejs', 'angular', 'vue',
+        'senior', 'junior', 'intern', 'lead', 'principal', 'director',
+        
+        // Vietnamese context friendly terms
+        'software', 'web', 'mobile', 'backend', 'frontend', 'fullstack',
+        'it', 'tech', 'technology', 'digital', 'system', 'network'
+    ],
+    
+    jobTitles: [
+        'Software Engineer', 'Senior Developer', 'Team Lead', 'Principal Engineer', 'Engineering Manager',
+        'Staff Engineer', 'Solution Architect', 'Technical Director', 'VP Engineering', 'CTO'
+    ],
+    
+    skills: [
+        'JavaScript', 'Python', 'React', 'Node.js', 'Java', 'AWS', 'Docker', 'Kubernetes',
+        'MongoDB', 'PostgreSQL', 'Redis', 'GraphQL', 'TypeScript', 'Vue.js', 'Angular',
+        'Spring Boot', 'Django', 'Flask', 'Express.js', 'MySQL'
+    ],
+    
+    industries: [
+        'Technology', 'Finance', 'Healthcare', 'E-commerce', 'Education', 'Gaming',
+        'Fintech', 'SaaS', 'Consulting', 'Startup', 'Enterprise', 'Government'
+    ],
+    
+    locations: [
+        'San Francisco', 'New York', 'Seattle', 'Austin', 'Boston', 'Los Angeles',
+        'Chicago', 'Denver', 'Atlanta', 'Miami', 'Portland', 'Remote'
+    ],
+    
+    companies: [
+        'Google', 'Amazon', 'Microsoft', 'Apple', 'Netflix', 'Uber', 'Airbnb',
+        'Spotify', 'Tesla', 'Meta', 'Twitter', 'LinkedIn', 'Stripe', 'Shopify'
+    ]
 };
 
 // Generate a realistic user profile
@@ -109,7 +152,26 @@ function generateDynamicData(template, userProfile) {
         '{{random_category}}': DATA_GENERATORS.categories[Math.floor(Math.random() * DATA_GENERATORS.categories.length)],
         '{{random_status}}': DATA_GENERATORS.statuses[Math.floor(Math.random() * DATA_GENERATORS.statuses.length)],
         '{{random_number}}': Math.floor(Math.random() * 1000),
-        '{{random_float}}': (Math.random() * 100).toFixed(2)
+        '{{random_float}}': (Math.random() * 100).toFixed(2),
+        
+        // Query keyword placeholders for search APIs
+        '{{search_query}}': DATA_GENERATORS.searchQueries[Math.floor(Math.random() * DATA_GENERATORS.searchQueries.length)],
+        '{{job_title}}': DATA_GENERATORS.jobTitles[Math.floor(Math.random() * DATA_GENERATORS.jobTitles.length)],
+        '{{skill}}': DATA_GENERATORS.skills[Math.floor(Math.random() * DATA_GENERATORS.skills.length)],
+        '{{industry}}': DATA_GENERATORS.industries[Math.floor(Math.random() * DATA_GENERATORS.industries.length)],
+        '{{location}}': DATA_GENERATORS.locations[Math.floor(Math.random() * DATA_GENERATORS.locations.length)],
+        '{{company}}': DATA_GENERATORS.companies[Math.floor(Math.random() * DATA_GENERATORS.companies.length)],
+        
+        // Combined query patterns for more realistic searches
+        '{{query_skill_location}}': `${DATA_GENERATORS.skills[Math.floor(Math.random() * DATA_GENERATORS.skills.length)]} ${DATA_GENERATORS.locations[Math.floor(Math.random() * DATA_GENERATORS.locations.length)]}`,
+        '{{query_title_skill}}': `${DATA_GENERATORS.jobTitles[Math.floor(Math.random() * DATA_GENERATORS.jobTitles.length)]} ${DATA_GENERATORS.skills[Math.floor(Math.random() * DATA_GENERATORS.skills.length)]}`,
+        '{{query_industry_role}}': `${DATA_GENERATORS.industries[Math.floor(Math.random() * DATA_GENERATORS.industries.length)]} ${DATA_GENERATORS.searchQueries[Math.floor(Math.random() * DATA_GENERATORS.searchQueries.length)]}`,
+        
+        // Additional patterns for better API compatibility
+        '{{simple_query}}': DATA_GENERATORS.searchQueries[Math.floor(Math.random() * DATA_GENERATORS.searchQueries.length)].split(' ')[0], // Single word
+        '{{short_query}}': DATA_GENERATORS.searchQueries[Math.floor(Math.random() * DATA_GENERATORS.searchQueries.length)].substring(0, 10), // Truncated
+        '{{real_user_id}}': Math.floor(Math.random() * 2000000) + 1000000, // More realistic user ID range
+        '{{city_id}}': Math.floor(Math.random() * 50) + 1, // City ID for location filters
     };
     
     const jsonString = JSON.stringify(dynamicData);
